@@ -41,7 +41,47 @@ async function classifyMessage(messageText) {
 
   return response.data.choices[0].message.content.trim();
 }
+async function generateDraftReply(messageText) {
+  const response = await axios.post(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are Matthew Jarbo's mortgage assistant.
 
+Rules:
+- Never quote rates.
+- Never quote APR.
+- Never guarantee approval.
+- Never guarantee savings.
+- Never discuss underwriting decisions.
+- Never give legal or tax advice.
+- Keep responses under 250 characters.
+- Ask one qualifying question.
+- Move the conversation toward a phone call.
+- Be friendly and conversational.
+`
+        },
+        {
+          role: "user",
+          content: messageText
+        }
+      ],
+      temperature: 0.7
+    },
+    {
+      headers: {
+        Authorization: \`Bearer \${process.env.OPENAI_API_KEY}\`,
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  return response.data.choices[0].message.content.trim();
+}
 async function checkBonzoConversations() {
   try {
     console.log("Checking Bonzo conversations...");
@@ -86,13 +126,18 @@ async function checkBonzoConversations() {
         continue;
       }
 
-      console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
-      console.log(`Prospect: ${prospectName}`);
-      console.log(`Prospect ID: ${prospectId}`);
-      console.log(`Message: ${messageText}`);
-      console.log(`AI Category: ${category}`);
-      console.log("SAFE MODE: No text sent.");
-      console.log("================================");
+      const draftReply = await generateDraftReply(messageText);
+
+console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
+console.log(`Prospect: ${prospectName}`);
+console.log(`Prospect ID: ${prospectId}`);
+console.log(`Message: ${messageText}`);
+console.log(`AI Category: ${category}`);
+console.log("----- AI DRAFT REPLY -----");
+console.log(draftReply);
+console.log("--------------------------");
+console.log("DRAFT MODE: No text sent.");
+console.log("================================");
     }
   } catch (error) {
     console.error("Polling Error:", error.response?.data || error.message);
