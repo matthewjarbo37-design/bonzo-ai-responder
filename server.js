@@ -10,7 +10,7 @@ const POLL_INTERVAL_MS = 60000;
 const processedMessages = new Set();
 
 app.get("/", (req, res) => {
-  res.send("Bonzo AI Polling Responder Running - HOT LEADS ONLY");
+  res.send("Bonzo AI Polling Responder Running - AUTO SEND ON");
 });
 
 async function classifyMessage(messageText) {
@@ -84,6 +84,23 @@ Rules:
   return response.data.choices[0].message.content.trim();
 }
 
+async function sendBonzoSms(prospectId, message) {
+  await axios.post(
+    `${BONZO_BASE_URL}/v3/prospects/${prospectId}/sms`,
+    {
+      message: message,
+      send_as: "owner"
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.BONZO_API_KEY}`,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      }
+    }
+  );
+}
+
 async function checkBonzoConversations() {
   try {
     console.log("Checking Bonzo conversations...");
@@ -135,17 +152,19 @@ async function checkBonzoConversations() {
         continue;
       }
 
-      const draftReply = await generateDraftReply(messageText);
+      const aiReply = await generateDraftReply(messageText);
 
-      console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
+      console.log("🔥🔥🔥 AUTO REPLY 🔥🔥🔥");
       console.log(`Prospect: ${prospectName}`);
       console.log(`Prospect ID: ${prospectId}`);
       console.log(`Message: ${messageText}`);
       console.log(`AI Category: ${category}`);
-      console.log("----- AI DRAFT REPLY -----");
-      console.log(draftReply);
-      console.log("--------------------------");
-      console.log("DRAFT MODE: No text sent.");
+      console.log("----- AI REPLY SENT -----");
+      console.log(aiReply);
+
+      await sendBonzoSms(prospectId, aiReply);
+
+      console.log("✅ MESSAGE SENT");
       console.log("================================");
     }
   } catch (error) {
