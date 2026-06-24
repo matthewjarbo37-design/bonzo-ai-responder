@@ -152,7 +152,6 @@ async function checkBonzoConversations() {
       const draftReply = await generateDraftReply(messageText);
 
 const draftReply = await generateDraftReply(messageText);
-
 console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
 console.log(`Prospect: ${prospectName}`);
 console.log(`Prospect ID: ${prospectId}`);
