@@ -82,6 +82,22 @@ Rules:
 
   return response.data.choices[0].message.content.trim();
 }
+async function sendBonzoSms(prospectId, message) {
+  await axios.post(
+    `${BONZO_BASE_URL}/v3/prospects/${prospectId}/sms`,
+    {
+      message: message,
+      send_as: "owner"
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.BONZO_API_KEY}`,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      }
+    }
+  );
+}
 async function checkBonzoConversations() {
   try {
     console.log("Checking Bonzo conversations...");
@@ -135,15 +151,19 @@ async function checkBonzoConversations() {
 
       const draftReply = await generateDraftReply(messageText);
 
+const draftReply = await generateDraftReply(messageText);
+
 console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
 console.log(`Prospect: ${prospectName}`);
 console.log(`Prospect ID: ${prospectId}`);
 console.log(`Message: ${messageText}`);
 console.log(`AI Category: ${category}`);
-console.log("----- AI DRAFT REPLY -----");
+console.log("----- AI REPLY -----");
 console.log(draftReply);
-console.log("--------------------------");
-console.log("DRAFT MODE: No text sent.");
+
+await sendBonzoSms(prospectId, draftReply);
+
+console.log("✅ MESSAGE SENT");
 console.log("================================");
     }
   } catch (error) {
