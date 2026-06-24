@@ -10,26 +10,10 @@ const POLL_INTERVAL_MS = 60000;
 const processedMessages = new Set();
 
 app.get("/", (req, res) => {
-  res.send("Bonzo AI Polling Responder Running - SAFE MODE");
+  res.send("Bonzo AI Polling Responder Running - HOT LEADS ONLY");
 });
 
 async function classifyMessage(messageText) {
-  const prompt = `
-You are classifying mortgage lead SMS replies.
-
-Message:
-"${messageText}"
-
-Return only one category:
-HOT_LEAD
-CALL_REQUESTED
-QUESTION
-NOT_INTERESTED
-WRONG_NUMBER
-STOP
-UNKNOWN
-`;
-
   const response = await axios.post(
     "https://api.openai.com/v1/chat/completions",
     {
@@ -37,11 +21,12 @@ UNKNOWN
       messages: [
         {
           role: "system",
-          content: "You classify SMS replies for a mortgage loan officer."
+          content:
+            "Classify mortgage lead SMS replies. Return only one category: HOT_LEAD, CALL_REQUESTED, QUESTION, NOT_INTERESTED, WRONG_NUMBER, STOP, UNKNOWN."
         },
         {
           role: "user",
-          content: prompt
+          content: `Message: "${messageText}"`
         }
       ],
       temperature: 0
@@ -71,16 +56,9 @@ async function checkBonzoConversations() {
     const conversations = response.data?.data || response.data || [];
 
     for (const convo of conversations) {
-      const prospectId =
-        convo.prospect_id ||
-        convo.prospectId ||
-        convo.id;
-
+      const prospectId = convo.prospect_id || convo.prospectId || convo.id;
       const prospectName =
-        convo.name ||
-        convo.full_name ||
-        convo.prospect_name ||
-        "Unknown Prospect";
+        convo.name || convo.full_name || convo.prospect_name || "Unknown Prospect";
 
       const lastMessage =
         convo.last_message ||
@@ -93,26 +71,22 @@ async function checkBonzoConversations() {
       const messageText =
         typeof lastMessage === "string"
           ? lastMessage
-          : lastMessage?.content ||
-            lastMessage?.message ||
-            lastMessage?.body ||
-            null;
+          : lastMessage?.content || lastMessage?.message || lastMessage?.body || null;
 
       const messageId =
-        lastMessage?.id ||
-        convo.last_message_id ||
-        convo.lastMessageId ||
-        `${prospectId}-${messageText}`;
+        lastMessage?.id || convo.last_message_id || convo.lastMessageId || `${prospectId}-${messageText}`;
 
-      if (!messageText || processedMessages.has(messageId)) {
-        continue;
-      }
+      if (!messageText || processedMessages.has(messageId)) continue;
 
       processedMessages.add(messageId);
 
       const category = await classifyMessage(messageText);
 
-      console.log("================================");
+      if (["STOP", "NOT_INTERESTED", "WRONG_NUMBER", "UNKNOWN"].includes(category)) {
+        continue;
+      }
+
+      console.log("🔥🔥🔥 HOT / USEFUL REPLY 🔥🔥🔥");
       console.log(`Prospect: ${prospectName}`);
       console.log(`Prospect ID: ${prospectId}`);
       console.log(`Message: ${messageText}`);
@@ -126,7 +100,6 @@ async function checkBonzoConversations() {
 }
 
 setInterval(checkBonzoConversations, POLL_INTERVAL_MS);
-
 checkBonzoConversations();
 
 const PORT = process.env.PORT || 3000;
